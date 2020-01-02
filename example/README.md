@@ -1,78 +1,61 @@
 # Desktop Flutter Example
 
-This application shows an example of how to use the embedding library on each
-platform including build dependencies, resource bundling, and using plugins.
+This is the standard Flutter template application, modified to run on desktop.
 
-In this example, the platform-specific code lives in `<platform>_fde`. For
-instance, the macOS project is in macos\_fde. This follows the pattern of
-the `android/` and `ios/` directories in a typical Flutter application (with
-`_fde` suffixes to avoid confusion or collisions if desktop support is added
-to Flutter itself). There's no requirement to use the same names in your
-project, or even to put them in the Flutter application directory.
+The `linux` and `windows` directories serve as early prototypes of
+what will eventually become the `flutter create` templates for desktop, and will
+be evolving over time to better reflect that goal. The `macos` directory has
+now become a `flutter create` template, so is largely identical to what that
+command creates.
 
-The example application is intended to be a starting point, rather than an
-authoritative example. For instance, you might use a different build system,
-package resources differently, etc. If you are are adding Flutter to an
-existing desktop application, you might instead put the Flutter application code
-inside your existing project structure.
+## Building and Running
 
-It also serves as a simple test environment for the plugins that are part of
-this project, and built-in event handling, so is a collection of unrelated
-functionality rather than a usable application.
+See [the main project README](../README.md).
 
-## Building and Running the Example
+To build without running, use `flutter build macos`/`windows`/`linux` rather than `flutter run`, as with
+a standard Flutter project.
 
-There is currently no tool that abstracts the platform-specific builds the
-way `flutter build` or `flutter run` does for iOS and Android, so you will need
-to follow the platform-specific build instructions for your platform below.
+## Dart Differences from Flutter Template
 
-The examples on Windows and Linux build the library from source, so you will
-need to ensure you have all the dependencies for
-[building the library on your platform](../library/README.md) before continuing.
+The `main.dart` and `pubspec.yaml` have minor changes to support desktop:
+* `debugDefaultTargetPlatformOverride` is set to avoid 'Unknown platform'
+  exceptions.
+* The font is explicitly set to Roboto, and Roboto is bundled via
+  `pubspec.yaml`, to ensure that text displays on all platforms.
 
-### Linux
+See the [Flutter Application Requirements section of the Flutter page on
+desktop support](https://github.com/flutter/flutter/wiki/Desktop-shells#flutter-application-requirements)
+for more information.
 
-Run `make -C example/linux_fde/`. The example binary and its resources will be
-in `example/build/linux_fde`, and can be run from there:
+## Adapting for Another Project
 
-```
-$ ./example/build/linux_fde/debug/flutter_embedder_example
-```
+Since `flutter create` is not yet supported for Windows and Linux, the easiest
+way to try out desktop support with an existing Flutter application on those
+platforms is to copy the platform directories from this example; see below for
+details. For macOS, just run `flutter create .` in your project, which will
+create the macOS folder (as long as you have macOS support enabled in `flutter`).
 
-To build a version with Dart asserts disabled (and thus no DEBUG banner),
-run `make BUILD=release` instead, then launch it with:
+Be sure to read the [Flutter page on desktop
+support](https://github.com/flutter/flutter/wiki/Desktop-shells) before trying to
+run an existing project on desktop, especially the [Flutter Application Requirements
+section](https://github.com/flutter/flutter/wiki/Desktop-shells#flutter-application-requirements).
 
-```
-$ ./example/build/linux_fde/release/flutter_embedder_example
-```
+### Copying the Desktop Runners
 
-### macOS
+The 'linux' and 'windows' directories are self-contained, and can be copied to
+an existing Flutter project, enabling `flutter run` for those platforms.
 
-Open the ExampleEmbedder Xcode project under `macos_fde/`, and build and run the
-example application target.
+**Be aware that neither the API surface of the Flutter desktop libraries nor the
+interaction between the `flutter` tool and the platform directories is stable,
+and no attempt will be made to provide supported migration paths as things
+change.** You should expect that every time you update Flutter you may have
+to delete your copies of the platform directories and re-copy them from an
+updated version of flutter-desktop-embedding.
 
-#### Note
+### Customizing the Runners
 
-Future iterations will likely move away from the use of the XIB file, as it
-makes it harder to see the necessary view setup. Most notably, to add an FLEView
-to a XIB in your own project:
-* Drag in an OpenGL View.
-* Change the class to FLEView.
-* Check the Double Buffer option. If your view doesn't draw, you have likely
-  forgotten this step.
-* Check the Supports Hi-Res Backing option. If you only see a portion of
-  your application when running on a high-DPI monitor, you have likely
-  forgotten this step.
+See [Application Customization](App-Customization.md) for premilinary
+documenation on modifying basic application information like name and icon.
 
-### Windows
-
-Open the `Example Embedder` Visual Studio solution file under `windows_fde\` to
-build and run the GLFW Example project.
-
-The resulting binary will be in
-`example\build\windows_fde\x64\$(Configuration)\GLFW Example\`. It can be run
-manually from there. E.g.:
-
-```
-> .\"example\build\windows_fde\x64\Debug\GLFW Example\GLFW Example.exe"
-```
+If you are building for macOS, you should also read about [managing macOS
+security configurations](../macOS-Security.md).

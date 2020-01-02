@@ -1,15 +1,31 @@
 # Desktop Plugins
 
-These are optional plugins that can be included in an embedder to access OS
-functionality.
+See [the Flutter desktop
+page](https://github.com/flutter/flutter/wiki/Desktop-shells#plugins)
+for an overview of the current state of plugin development on desktop.
 
-## How to use this code
+This directory contains three types of plugins:
+* `example_plugin`, which like `example/` will eventually be replaced by
+  `flutter create -t plugin` support for desktop.
+* `flutter_plugins`, which contain Windows and Linux implementations of plugins
+  from [the flutter/plugins repository](https://github.com/flutter/plugins)
+  that are expected to move to that repository once the plugin APIs are
+  sufficiently stable.
+* Plugins that prototype functionality that will likely become part of
+  Flutter itself.
 
-In the long term plugins would be managed via pub, as they are with mobile
-Flutter plugins. For now, however, they are designed to be included directly
-from this repository.
+## Using Plugins
 
-### Flutter
+Since the plugins in this repository are not intended to live here long term,
+and the `flutter` tool doesn't have plugin support on all platforms yet, these
+plugins are not published on pub.dev like normal Flutter plugins. Instead, you
+should include them directly from this repository.
+
+An overview of the approach for each platform is below. See the `testbed`
+application for an example of including optional plugins, including the changes
+to each platform's runner in the corresponding platform directory.
+
+### Dart
 
 Add local package references for the plugins you want to use to your
 pubspec.yaml. For example:
@@ -17,63 +33,110 @@ pubspec.yaml. For example:
 ```
 dependencies:
   ...
-  color_panel:
-    path: relative/path/to/plugins/color_panel
+  example_plugin:
+    path: relative/path/to/plugins/example_plugin
 ```
+
+(On macOS, you can use a [git
+reference](https://dart.dev/tools/pub/dependencies#git-packages)
+instead of referencing a local copy.)
 
 Then import it in your dart code as you would any other package:
 ```dart
-import 'package:color_panel/color_panel.dart';
+import 'package:example_plugin/example_plugin.dart';
 ```
+
+This step does not apply to `flutter_plugins` plugins, as the
+Dart code for those plugins comes from the official plugin.
 
 ### macOS
 
-Build the Xcode project under the macos diretory for each plugin you
-want to use, then link the resulting framework in your project.
-
-When you set up your FLEViewController, before calling `launchEngine...`,
-call `-registerWithRegistrar:` on each plugin you want to use. For
-instance:
-
-```objc
-  [FLEFileChooserPlugin registerWithRegistrar:
-      [myFlutterViewController registrarForPlugin:"FLEFileChooserPlugin"]];
-```
+The `flutter` tool now supports macOS plugins. Once the plugin is added to
+your pubspec.yaml, `flutter run` will automatically manage the platform side
+using CocoaPods (as with iOS plugins).
 
 ### Linux
 
-Run `ninja -C out` at the root of the repository to build all plugins, then
-link the libraries for the plugins you want into your application. As with the
-library build, `out/` and `out/include/` will contain all the files you need.
+#### Dependencies
 
-After creating your Flutter window controller, call your plugin's registrar
-function. For instance:
+The Linux plugins in this project require the following libraries:
 
-```cpp
-  ColorPanelRegisterWithRegistrar(
-      flutter_controller.GetRegistrarForPlugin("ColorPanel"));
+* GTK 3
+* pkg-config
+
+Installation example for debian-based systems:
+
+```
+$ sudo apt-get install libgtk-3-dev pkg-config
 ```
 
-### Example Application
+#### Adding to your Application
 
-See the example application under each platform's directory in the `example`
-directory to see an example of including optional plugins on that platform.
+The `flutter` tool will generate a plugin registrant for you, so you
+won't need to change any C++ code.
 
-The Flutter application under `example/` shows examples of using
-optional plugins on the Dart side.
+Adding it to the build system is still entirely manual, and currently
+quite complicated. Run:
+```
+$ diff u example/linux/Makefile testbed/linux/Makefile
+```
+to see what kinds of changes are necessary to the Makefile, and adapt based
+on the plugins you are using. There may be change to simplify this process
+in the short-to-medium term while a full solution is decided on.
 
-## Writing your own plugins
+**Note:** The eventual implementation of plugin management for Linux will
+likely be entirely different from this approach.
 
-You can easily create local packages following the model of plugins here to
-use in your own projects. In particular, the color_panel plugin has examples
-of typical platform builds for plugins.
+#### Building Manually
 
-If you think they would be generally useful, feel free to submit a pull request
-and they could potentially be folded into this repository. In the future, as
-noted above, desktop plugins would be managed using a model like mobile
-plugins where that wouldn't be necessary.
+*This is relevant only if you are using the plugins without doing the above,
+for example in manual add-to-app experimentation.*
 
-### Caveats
+Run `make -C linux` in the directory of the plugin you want to build.
 
-Currently only JSONMethodCodec is supported for Windows/Linux plugins. See
-https://github.com/google/flutter-desktop-embedding/issues/67
+### Windows
+
+#### Adding to your Application
+
+The `flutter` tool will generate a plugin registrant for you, so you
+won't need to change any C++ code.
+
+Adding it to the build system is currently a manual process. To add a plugin:
+- Open your application's `Runner.sln` in Visual Studio
+- Go to `File` > `Add` > `Existing Project...`
+- Add the `.vcxproj` for the plugin
+- Go to `Project` > `Project Dependencies...`
+  - Make `Runner` depend on the plugin project
+  - Make the plugin project depend on `Flutter Build`
+- Edit `FlutterPlugins.props` to list the plugin library as a dependency.
+  See [`testbed`'s copy](https://github.com/google/flutter-desktop-embedding/blob/master/testbed/windows/FlutterPlugins.props)
+  for an example.
+
+Note: The eventual implementation of plugin management for Windows will likely
+be entirely different from this approach.
+
+#### Building Manually
+
+*This is relevant only if you are using the plugins without doing the above,
+for example in manual add-to-app experimentation.*
+
+The plugin projects are designed to be built from within the solution of
+the application using them. Add the `.vcxproj` files for the plugins you want
+to build to your application's `.sln`. (Opening a plugin project directly
+and trying to build it **will not work** with the current structure.)
+
+The plugin builds in this project put the library at the top level of the
+Plugins directory in the application's build output, along with their public
+headers.
+
+## Writing Your Own Plugins
+
+You can create local packages following the model of the Windows and Linux
+plugins here to use in your own projects; in particular, `example_plugin`
+is intended to serve as a starting point for new plugins. For macOS,
+you should use `flutter create` as usual.
+
+Keep in mind the notes about API stability on the Flutter desktop page
+linked above. On platforms where the plugin API is still unstable, or
+where `flutter` tool support doesn't exist yet, you should expect to
+need to substantially change plugins written now as the APIs evolve.
